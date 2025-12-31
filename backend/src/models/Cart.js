@@ -35,7 +35,7 @@ const cartSchema = new mongoose.Schema({
     },
     status: {
         type: String, 
-        enum: ["ACTIVE", "LOCK", "PAID", "EXPIRED"],
+        enum: ["ACTIVE", "LOCKED", "PAID", "EXPIRED"],
         default: "ACTIVE"
     },
     lockedAt: Date,

@@ -4,17 +4,26 @@ import Product from "../models/Product.js";
 const getActiveCart = async (req, res) => {
     const userId = req.user.userId;
     
-    let cart = await Cart.findOne({userId, status: "ACTIVE"});
+    // 1. First, try to find ACTIVE cart
+let cart = await Cart.findOne({
+  userId,
+  status: "ACTIVE"
+});
 
-    if(!cart){
-        cart = await Cart.create({
-            userId, 
-            items: [],
-            totalAmount: 0,
-            expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-        })
-    }
-    return res.status(200).json(cart);
+if (cart) {
+  return res.json(cart);
+}
+
+// 2. If no ACTIVE cart, create a new one
+cart = await Cart.create({
+  userId,
+  items: [],
+  totalAmount: 0,
+  expiresAt: new Date(Date.now() + 30 * 60 * 1000)
+});
+
+return res.json(cart);
+
 }
 
 const addItemToCart = async (req, res) => {
@@ -42,7 +51,7 @@ const addItemToCart = async (req, res) => {
 
     const itemIndex = cart.items.findIndex(item => item.productId.toString() === product._id.toString());
 
-    if(itemIndex > 0){
+    if(itemIndex >= 0){
         cart.items[itemIndex].qty = qty;
     }
     else{
@@ -51,12 +60,12 @@ const addItemToCart = async (req, res) => {
             qty, 
             priceSnapshot: product.price
         });
-
-        cart.totalAmount = cart.items.reduce((sum, i) => sum + i.qty * i.priceSnapshot, 0);
-
-        await cart.save();
-        res.status(200).json(cart);
     }
+
+    cart.totalAmount = cart.items.reduce((sum, i) => sum + i.qty * i.priceSnapshot, 0);
+
+    await cart.save();
+    res.status(200).json(cart);
 }
 
 
@@ -74,7 +83,7 @@ const lockCart = async (req, res) => {
     );
 
     if(!cart){
-        res.status(404).json({message: "No active cart to lock"});
+        return res.status(404).json({message: "No active cart to lock"});
     }
 
     res.status(200).json(cart);
